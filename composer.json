@@ -41,6 +41,9 @@
         "cs-fix": "php-cs-fixer fix $1"
     },
     "extra": {
+        "branch-alias": {
+            "dev-main": "0.1-dev"
+        },
         "hyperf": {
             "config": "Hyperf\\MqttServer\\ConfigProvider"
         }
