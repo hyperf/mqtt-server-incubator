@@ -1,5 +1,5 @@
 # MQTT Server
 
-```
-composer create-project hyperf/mqtt-server-incubator
+```bash
+composer require hyperf/mqtt-server-incubator
 ```
