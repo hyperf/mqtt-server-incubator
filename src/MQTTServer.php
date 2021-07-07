@@ -13,10 +13,16 @@ namespace Hyperf\MqttServer;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\DispatcherInterface;
+use Hyperf\Contract\OnCloseInterface;
 use Hyperf\Contract\OnReceiveInterface;
 use Hyperf\ExceptionHandler\ExceptionHandlerDispatcher;
+use Hyperf\HttpMessage\Server\Request;
+use Hyperf\HttpMessage\Server\Response as PsrResponse;
+use Hyperf\HttpMessage\Stream\SwooleStream;
+use Hyperf\HttpMessage\Uri\Uri;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
 use Hyperf\MqttServer\Exception\Handler\MqttExceptionHandler;
+use Hyperf\Utils\Codec\Json;
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Coordinator\Constants;
 use Hyperf\Utils\Coordinator\CoordinatorManager;
@@ -24,11 +30,14 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Simps\MQTT\Protocol\Types;
+use Simps\MQTT\Protocol\V3;
 use Swoole\Coroutine\Server\Connection;
+use Swoole\Http\Response;
 use Swoole\Server as SwooleServer;
 use Throwable;
 
-abstract class Server implements OnReceiveInterface
+abstract class MQTTServer implements OnReceiveInterface, OnCloseInterface
 {
     /**
      * @var ContainerInterface
@@ -99,8 +108,8 @@ abstract class Server implements OnReceiveInterface
             CoordinatorManager::until(Constants::WORKER_START)->yield();
 
             // Initialize PSR-7 Request and Response objects.
-            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data));
             Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
+            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data));
 
             $middlewares = $this->middlewares;
 
@@ -112,7 +121,7 @@ abstract class Server implements OnReceiveInterface
             $exceptionHandlerDispatcher = $this->container->get(ExceptionHandlerDispatcher::class);
             $response = $exceptionHandlerDispatcher->dispatch($throwable, $this->exceptionHandlers);
         } finally {
-            if ($response) {
+            if ($response instanceof ResponseInterface) {
                 $this->send($server, $fd, $response);
             }
         }
@@ -137,9 +146,24 @@ abstract class Server implements OnReceiveInterface
         }
     }
 
-    abstract protected function createCoreMiddleware(): CoreMiddlewareInterface;
+    protected function createCoreMiddleware(): CoreMiddlewareInterface
+    {
+        return new CoreMiddleware($this->container, $this->serverName);
+    }
 
-    abstract protected function buildRequest(int $fd, int $reactorId, string $data): ServerRequestInterface;
+    protected function buildRequest(int $fd, int $reactorId, string $data): ServerRequestInterface
+    {
+        $data = V3::unpack($data);
+        $uri = new Uri('http://0.0.0.0/');
+        $request = new Request('POST', $uri, ['Content-Type' => 'application/json'], new SwooleStream(Json::encode($data)));
+        return $request->withAttribute(Types::class, $data['type'] ?? 0)
+            ->withAttribute('fd', $fd)
+            ->withAttribute('reactorId', $reactorId)
+            ->withParsedBody($data);
+    }
 
-    abstract protected function buildResponse(int $fd, $server): ResponseInterface;
+    protected function buildResponse(int $fd, $server): ResponseInterface
+    {
+        return (new PsrResponse())->withAttribute('fd', $fd)->withAttribute('server', $server);
+    }
 }

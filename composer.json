@@ -20,6 +20,7 @@
     "require": {
         "php": ">=7.3",
         "hyperf/contract": "^2.1",
+        "hyperf/di": "^2.1",
         "hyperf/http-server": "^2.1",
         "hyperf/utils": "^2.1",
         "simps/mqtt": "^1.3"
@@ -30,7 +31,6 @@
         "phpstan/phpstan": "^0.12",
         "phpunit/phpunit": ">=7.0",
         "swoole/ide-helper": "^4.6",
-        "swow/swow": "dev-develop",
         "symfony/var-dumper": "^5.1"
     },
     "minimum-stability": "dev",
