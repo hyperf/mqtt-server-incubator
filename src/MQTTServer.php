@@ -13,7 +13,10 @@ namespace Hyperf\MqttServer;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\DispatcherInterface;
+use Hyperf\Contract\MiddlewareInitializerInterface;
 use Hyperf\Contract\OnReceiveInterface;
+use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Dispatcher\HttpDispatcher;
 use Hyperf\ExceptionHandler\ExceptionHandlerDispatcher;
 use Hyperf\HttpMessage\Server\Request;
 use Hyperf\HttpMessage\Server\Response as PsrResponse;
@@ -35,7 +38,7 @@ use Swoole\Coroutine\Server\Connection;
 use Swoole\Server as SwooleServer;
 use Throwable;
 
-class MQTTServer implements OnReceiveInterface
+class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
 {
     /**
      * @var ContainerInterface
@@ -79,9 +82,9 @@ class MQTTServer implements OnReceiveInterface
 
     public function __construct(
         ContainerInterface $container,
-        DispatcherInterface $dispatcher,
+        HttpDispatcher $dispatcher,
         ExceptionHandlerDispatcher $exceptionDispatcher,
-        LoggerInterface $logger
+        StdoutLoggerInterface $logger
     ) {
         $this->container = $container;
         $this->dispatcher = $dispatcher;
