@@ -14,6 +14,7 @@ namespace Hyperf\MqttServer\Exception\Handler;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
+use Hyperf\HttpMessage\Base\Response;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
@@ -40,6 +41,10 @@ class MqttExceptionHandler extends ExceptionHandler
         $this->logger->warning($this->formatter->format($throwable));
 
         $this->stopPropagation();
+
+        if ($response instanceof Response) {
+            $response = $response->withAttribute('closed', true);
+        }
 
         return $response;
     }
