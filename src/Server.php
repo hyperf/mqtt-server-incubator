@@ -17,7 +17,6 @@ use Hyperf\Contract\OnReceiveInterface;
 use Hyperf\ExceptionHandler\ExceptionHandlerDispatcher;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
 use Hyperf\MqttServer\Exception\Handler\MqttExceptionHandler;
-use Hyperf\Server\ServerManager;
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Coordinator\Constants;
 use Hyperf\Utils\Coordinator\CoordinatorManager;
@@ -119,14 +118,6 @@ abstract class Server implements OnReceiveInterface
         }
     }
 
-    public function onConnect(SwooleServer $server)
-    {
-        // $server is the main server object, not the server object that this callback on.
-        /* @var \Swoole\Server\Port */
-        [$type, $port] = ServerManager::get($this->serverName);
-        $this->logger->debug(sprintf('Connect to %s:%d', $port->host, $port->port));
-    }
-
     protected function getDefaultExceptionHandler(): array
     {
         return [
@@ -135,7 +126,7 @@ abstract class Server implements OnReceiveInterface
     }
 
     /**
-     * @param \Swoole\Coroutine\Server\Connection|SwooleServer $server
+     * @param Connection|SwooleServer $server
      */
     protected function send($server, int $fd, ResponseInterface $response): void
     {

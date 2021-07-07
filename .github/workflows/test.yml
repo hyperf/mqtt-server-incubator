@@ -3,7 +3,7 @@ name: PHPUnit
 on: [push, pull_request]
 
 env:
-  SWOOLE_VERSION: '4.6.3'
+  SWOOLE_VERSION: 'v4.6.7'
   SWOW_VERSION: 'develop'
 
 jobs:
@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        php-version: ['7.3', '7.4']
-        engine: ['none', 'swoole', 'swow']
+        php-version: ['7.3', '7.4', '8.0']
+        engine: ['swoole', 'swow']
       max-parallel: 5
     steps:
       - name: Checkout
@@ -29,8 +29,9 @@ jobs:
       - name: Setup Swoole
         if: ${{ matrix.engine == 'swoole' }}
         run: |
+          sudo apt-get update
           sudo apt-get install libcurl4-openssl-dev
-          wget https://github.com/swoole/swoole-src/archive/v${SWOOLE_VERSION}.tar.gz -O swoole.tar.gz
+          wget https://github.com/swoole/swoole-src/archive/${SWOOLE_VERSION}.tar.gz -O swoole.tar.gz
           mkdir -p swoole
           tar -xf swoole.tar.gz -C swoole --strip-components=1
           rm swoole.tar.gz
@@ -40,6 +41,7 @@ jobs:
           make -j$(nproc)
           sudo make install
           sudo sh -c "echo extension=swoole > /etc/php/${{ matrix.php-version }}/cli/conf.d/swoole.ini"
+          sudo sh -c "echo swoole.use_shortname='Off' >> /etc/php/${{ matrix.php-version }}/cli/conf.d/swoole.ini"
           php --ri swoole
       - name: Setup Swow
         if: ${{ matrix.engine == 'swow' }}
