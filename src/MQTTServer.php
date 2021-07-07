@@ -32,7 +32,6 @@ use Psr\Log\LoggerInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
 use Swoole\Coroutine\Server\Connection;
-use Swoole\Http\Response;
 use Swoole\Server as SwooleServer;
 use Throwable;
 
