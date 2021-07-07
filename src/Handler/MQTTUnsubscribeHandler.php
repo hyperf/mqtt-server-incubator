@@ -14,6 +14,7 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
+use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
 
 class MQTTUnsubscribeHandler implements HandlerInterface
