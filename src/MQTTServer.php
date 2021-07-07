@@ -121,6 +121,9 @@ abstract class MQTTServer implements OnReceiveInterface, OnCloseInterface
             $exceptionHandlerDispatcher = $this->container->get(ExceptionHandlerDispatcher::class);
             $response = $exceptionHandlerDispatcher->dispatch($throwable, $this->exceptionHandlers);
         } finally {
+            if ($response instanceof PsrResponse && $response->getAttribute('closed', false)) {
+                $this->close($server, $fd);
+            }
             if ($response instanceof ResponseInterface) {
                 $this->send($server, $fd, $response);
             }
@@ -139,10 +142,24 @@ abstract class MQTTServer implements OnReceiveInterface, OnCloseInterface
      */
     protected function send($server, int $fd, ResponseInterface $response): void
     {
+        $body = (string) $response->getBody();
+        if (empty($body)) {
+            return;
+        }
+
         if ($server instanceof SwooleServer) {
-            $server->send($fd, (string) $response->getBody());
+            $server->send($fd, $body);
         } elseif ($server instanceof Connection) {
-            $server->send((string) $response->getBody());
+            $server->send($body);
+        }
+    }
+
+    protected function close($server, int $fd): void
+    {
+        if ($server instanceof SwooleServer) {
+            $server->close($fd);
+        } elseif ($server instanceof Connection) {
+            $server->close();
         }
     }
 

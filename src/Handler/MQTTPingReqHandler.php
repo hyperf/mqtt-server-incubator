@@ -17,21 +17,12 @@ use Psr\Http\Message\ServerRequestInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
 
-class MQTTConnectHandler implements HandlerInterface
+class MQTTPingReqHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
-        $data = $request->getParsedBody();
-        if ($data['protocol_name'] != 'MQTT') {
-            return $response->withAttribute('closed', true);
-        }
-
         return $response->withBody(new SwooleStream(V3::pack(
-            [
-                'type' => Types::CONNACK,
-                'code' => 0,
-                'session_present' => 0,
-            ]
+            ['type' => Types::PINGRESP]
         )));
     }
 }

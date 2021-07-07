@@ -15,6 +15,11 @@ use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
 use Hyperf\MqttServer\Annotation\MQTTEvent;
 use Hyperf\MqttServer\Handler\MQTTConnectHandler;
+use Hyperf\MqttServer\Handler\MQTTDisconnectHandler;
+use Hyperf\MqttServer\Handler\MQTTPingReqHandler;
+use Hyperf\MqttServer\Handler\MQTTPublishHandler;
+use Hyperf\MqttServer\Handler\MQTTSubscribeHandler;
+use Hyperf\MqttServer\Handler\MQTTUnsubscribeHandler;
 use Hyperf\Utils\Context;
 use Laminas\Stdlib\SplPriorityQueue;
 use Psr\Container\ContainerInterface;
@@ -63,10 +68,8 @@ class CoreMiddleware implements CoreMiddlewareInterface
             }
         }
 
-        switch ($type) {
-            case Types::CONNECT:
-                $queue->insert([MQTTConnectHandler::class, 'handle'], 0);
-                break;
+        if ($defaultHandler = $this->getDefaultHandler($type)) {
+            $queue->insert([$defaultHandler, 'handle'], 0);
         }
 
         foreach ($queue as [$class, $method]) {
@@ -76,5 +79,19 @@ class CoreMiddleware implements CoreMiddlewareInterface
         }
 
         return $response;
+    }
+
+    protected function getDefaultHandler(int $type): ?string
+    {
+        $handlers = [
+            Types::CONNECT => MQTTConnectHandler::class,
+            Types::DISCONNECT => MQTTDisconnectHandler::class,
+            Types::PINGREQ => MQTTPingReqHandler::class,
+            Types::PUBLISH => MQTTPublishHandler::class,
+            Types::SUBSCRIBE => MQTTSubscribeHandler::class,
+            Types::UNSUBSCRIBE => MQTTUnsubscribeHandler::class,
+        ];
+
+        return $handlers[$type] ?? null;
     }
 }

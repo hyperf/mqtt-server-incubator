@@ -14,7 +14,10 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\HttpMessage\Server\Response;
 use Psr\Http\Message\ServerRequestInterface;
 
-interface HandlerInterface
+class MQTTDisconnectHandler implements HandlerInterface
 {
-    public function handle(ServerRequestInterface $request, Response $response): Response;
+    public function handle(ServerRequestInterface $request, Response $response): Response
+    {
+        return $response->withAttribute('closed', true);
+    }
 }

@@ -17,20 +17,25 @@ use Psr\Http\Message\ServerRequestInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
 
-class MQTTConnectHandler implements HandlerInterface
+class MQTTSubscribeHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        if ($data['protocol_name'] != 'MQTT') {
-            return $response->withAttribute('closed', true);
+        $payload = [];
+        foreach ($data['topics'] as $k => $qos) {
+            if (is_numeric($qos) && $qos < 3) {
+                $payload[] = $qos;
+            } else {
+                $payload[] = 0x80;
+            }
         }
 
         return $response->withBody(new SwooleStream(V3::pack(
             [
-                'type' => Types::CONNACK,
-                'code' => 0,
-                'session_present' => 0,
+                'type' => Types::SUBACK,
+                'message_id' => $data['message_id'] ?? '',
+                'codes' => $payload,
             ]
         )));
     }
