@@ -13,7 +13,6 @@ namespace Hyperf\MqttServer;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\DispatcherInterface;
-use Hyperf\Contract\OnCloseInterface;
 use Hyperf\Contract\OnReceiveInterface;
 use Hyperf\ExceptionHandler\ExceptionHandlerDispatcher;
 use Hyperf\HttpMessage\Server\Request;
@@ -37,7 +36,7 @@ use Swoole\Http\Response;
 use Swoole\Server as SwooleServer;
 use Throwable;
 
-abstract class MQTTServer implements OnReceiveInterface, OnCloseInterface
+class MQTTServer implements OnReceiveInterface
 {
     /**
      * @var ContainerInterface
