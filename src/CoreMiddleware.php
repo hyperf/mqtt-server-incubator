@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Hyperf\MqttServer;
 
 use Hyperf\Di\Annotation\AnnotationCollector;
+use Hyperf\HttpMessage\Base\Response;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
 use Hyperf\MqttServer\Annotation\MQTTEvent;
 use Hyperf\MqttServer\Handler\MQTTConnectHandler;
@@ -73,8 +74,13 @@ class CoreMiddleware implements CoreMiddlewareInterface
         }
 
         foreach ($queue as [$class, $method]) {
-            if ($this->container->has($class)) {
-                $response = $this->container->get($class)->{$method}($request, $response);
+            if (! $this->container->has($class)) {
+                continue;
+            }
+
+            $response = $this->container->get($class)->{$method}($request, $response);
+            if ($response instanceof Response && $response->getAttribute('stopped', false)) {
+                break;
             }
         }
 
