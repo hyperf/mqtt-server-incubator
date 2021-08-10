@@ -19,8 +19,14 @@ use Simps\MQTT\Protocol\V3;
 
 class MQTTPingReqHandler implements HandlerInterface
 {
+    use ResponseRewritable;
+
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
+        if (! $this->isRewritable($response)) {
+            return $response;
+        }
+
         return $response->withBody(new SwooleStream(V3::pack(
             ['type' => Types::PINGRESP]
         )));

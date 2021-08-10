@@ -19,11 +19,17 @@ use Simps\MQTT\Protocol\V3;
 
 class MQTTConnectHandler implements HandlerInterface
 {
+    use ResponseRewritable;
+
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
         $data = $request->getParsedBody();
         if ($data['protocol_name'] != 'MQTT') {
             return $response->withAttribute('closed', true);
+        }
+
+        if (! $this->isRewritable($response)) {
+            return $response;
         }
 
         return $response->withBody(new SwooleStream(V3::pack(

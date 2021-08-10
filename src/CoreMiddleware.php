@@ -93,9 +93,10 @@ class CoreMiddleware implements CoreMiddlewareInterface
             Types::CONNECT => MQTTConnectHandler::class,
             Types::DISCONNECT => MQTTDisconnectHandler::class,
             Types::PINGREQ => MQTTPingReqHandler::class,
-            Types::PUBLISH => MQTTPublishHandler::class,
-            Types::SUBSCRIBE => MQTTSubscribeHandler::class,
-            Types::UNSUBSCRIBE => MQTTUnsubscribeHandler::class,
+            // The handlers below are not necessary.
+            // Types::PUBLISH => MQTTPublishHandler::class,
+            // Types::SUBSCRIBE => MQTTSubscribeHandler::class,
+            // Types::UNSUBSCRIBE => MQTTUnsubscribeHandler::class,
         ];
 
         return $handlers[$type] ?? null;
