@@ -1,9 +1,9 @@
 name: PHPUnit
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 env:
-  SWOOLE_VERSION: 'v4.7.0'
+  SWOOLE_VERSION: 'v4.8.11'
   SWOW_VERSION: 'develop'
 
 jobs:
@@ -12,9 +12,9 @@ jobs:
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        php-version: ['7.3', '7.4', '8.0']
-        engine: ['swoole']
+        os: [ ubuntu-latest ]
+        php-version: [ '8.0', '8.1' ]
+        engine: [ 'swoole' ]
       max-parallel: 5
     steps:
       - name: Checkout
@@ -24,7 +24,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: phpize
-          ini-values: opcache.enable_cli=1
+          ini-values: opcache.enable_cli=0
           coverage: none
       - name: Setup Swoole
         if: ${{ matrix.engine == 'swoole' }}

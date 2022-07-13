@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace Hyperf\MqttServer;
 
+use Hyperf\Context\Context;
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\HttpMessage\Base\Response;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
@@ -21,7 +22,6 @@ use Hyperf\MqttServer\Handler\MQTTPingReqHandler;
 use Hyperf\MqttServer\Handler\MQTTPublishHandler;
 use Hyperf\MqttServer\Handler\MQTTSubscribeHandler;
 use Hyperf\MqttServer\Handler\MQTTUnsubscribeHandler;
-use Hyperf\Utils\Context;
 use Laminas\Stdlib\SplPriorityQueue;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
