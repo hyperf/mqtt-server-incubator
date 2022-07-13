@@ -64,6 +64,8 @@ return [
 
 组件增加了可以监听 MQTT 服务各个阶段的事件，比如我们写一个 `MQTTConnectHandler` 用来监听客户端连接。
 
+> PUBLISH, SUBSCRIBE 和 UNSUBSCRIBE 三个事件，需要自行实现
+
 ```php
 <?php
 
@@ -114,7 +116,3 @@ string(234) "{"type":1,"protocol_name":"MQTT","protocol_level":4,"clean_session"
 |   type   |                    事件类型                    |
 | priority | 事件优先级，越大越先执行，默认的事件优先级为 0 |
 
-## 需要完善的难点
-
-- 支持协程风格
-- 支持分布式

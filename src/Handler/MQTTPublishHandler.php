@@ -16,13 +16,14 @@ use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Swoole\Coroutine\Server\Connection;
 use Swoole\Server;
 
 class MQTTPublishHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
-        /** @var Server $server */
+        /** @var Server|Connection $server */
         $server = $response->getAttribute('server');
         $fd = $request->getAttribute('fd');
         $data = $request->getParsedBody();
