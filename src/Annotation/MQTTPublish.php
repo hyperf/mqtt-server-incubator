@@ -14,10 +14,6 @@ namespace Hyperf\MqttServer\Annotation;
 use Attribute;
 use Simps\MQTT\Protocol\Types;
 
-/**
- * @Annotation
- * @Target({"CLASS", "METHOD"})
- */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class MQTTPublish extends MQTTEvent
 {
