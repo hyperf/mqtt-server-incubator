@@ -35,7 +35,7 @@ class MQTTPublishHandler implements HandlerInterface
 
         foreach ($server->connections as $targetFd) {
             if ($targetFd != $fd) {
-                $data =
+                $packData =
                     [
                         'type' => $data['type'],
                         'topic' => $data['topic'],
@@ -46,28 +46,28 @@ class MQTTPublishHandler implements HandlerInterface
                         'message_id' => $data['message_id'] ?? '',
                     ];
                 if ($level != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
-                    $data = V3::pack($data);
+                    $packData = V3::pack($packData);
                 } else {
-                    $data = V5::pack($data);
+                    $packData = V5::pack($packData);
                 }
                 $server->send(
                     $targetFd,
-                    $data
+                    $packData
                 );
             }
         }
 
         if ($data['qos'] === 1) {
-            $data = [
+            $packData = [
                 'type' => Types::PUBACK,
                 'message_id' => $data['message_id'] ?? '',
             ];
             if ($level == 3) {
-                $data = V3::pack($data);
+                $packData = V3::pack($packData);
             } else {
-                $data = V5::pack($data);
+                $packData = V5::pack($packData);
             }
-            $response = $response->withBody(new SwooleStream($data));
+            $response = $response->withBody(new SwooleStream($packData));
         }
 
         return $response;

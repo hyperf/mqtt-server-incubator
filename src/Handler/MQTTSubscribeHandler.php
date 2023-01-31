@@ -11,11 +11,14 @@ declare(strict_types=1);
  */
 namespace Hyperf\MqttServer\Handler;
 
+use Hyperf\Context\Context;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Protocol\V5;
 
 class MQTTSubscribeHandler implements HandlerInterface
 {
@@ -30,13 +33,18 @@ class MQTTSubscribeHandler implements HandlerInterface
                 $payload[] = 0x80;
             }
         }
+        $data = [
+            'type' => Types::SUBACK,
+            'message_id' => $data['message_id'] ?? '',
+            'codes' => $payload,
+        ];
 
-        return $response->withBody(new SwooleStream(V3::pack(
-            [
-                'type' => Types::SUBACK,
-                'message_id' => $data['message_id'] ?? '',
-                'codes' => $payload,
-            ]
-        )));
+        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+            $data = V3::pack($data);
+        } else {
+            $data = V5::pack($data);
+        }
+
+        return $response->withBody(new SwooleStream($data));
     }
 }
