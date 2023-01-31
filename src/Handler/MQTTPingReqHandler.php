@@ -11,11 +11,14 @@ declare(strict_types=1);
  */
 namespace Hyperf\MqttServer\Handler;
 
+use Hyperf\Context\Context;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Protocol\V5;
 
 class MQTTPingReqHandler implements HandlerInterface
 {
@@ -26,9 +29,12 @@ class MQTTPingReqHandler implements HandlerInterface
         if (! $this->isRewritable($response)) {
             return $response;
         }
-
-        return $response->withBody(new SwooleStream(V3::pack(
-            ['type' => Types::PINGRESP]
-        )));
+        $data = ['type' => Types::PINGRESP];
+        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+            $data = V3::pack($data);
+        } else {
+            $data = V5::pack($data);
+        }
+        return $response->withBody(new SwooleStream($data));
     }
 }

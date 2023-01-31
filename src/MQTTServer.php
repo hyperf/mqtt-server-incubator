@@ -32,8 +32,11 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Protocol\V5;
+use Simps\MQTT\Tools\UnPackTool;
 use Swoole\Coroutine\Server\Connection;
 use Swoole\Server as SwooleServer;
 use Throwable;
@@ -106,6 +109,9 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
     {
         $request = $response = null;
         try {
+            if (UnPackTool::getType($data) == Types::CONNECT) {
+                Context::set('MqttProtocolLevel', UnPackTool::getLevel($data));
+            }
             CoordinatorManager::until(Constants::WORKER_START)->yield();
 
             // Initialize PSR-7 Request and Response objects.
@@ -171,7 +177,11 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
 
     protected function buildRequest(int $fd, int $reactorId, string $data): ServerRequestInterface
     {
-        $data = V3::unpack($data);
+        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+            $data = V3::unpack($data);
+        } else {
+            $data = V5::unpack($data);
+        }
         $uri = new Uri('http://0.0.0.0/');
         $request = new Request('POST', $uri, ['Content-Type' => 'application/json'], new SwooleStream(Json::encode($data)));
         return $request->withAttribute(Types::class, $data['type'] ?? 0)

@@ -11,23 +11,31 @@ declare(strict_types=1);
  */
 namespace Hyperf\MqttServer\Handler;
 
+use Hyperf\Context\Context;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Protocol\V5;
 
 class MQTTUnsubscribeHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
         $data = $request->getParsedBody();
+        $data = [
+            'type' => Types::UNSUBACK,
+            'message_id' => $data['message_id'] ?? '',
+        ];
 
-        return $response->withBody(new SwooleStream(V3::pack(
-            [
-                'type' => Types::UNSUBACK,
-                'message_id' => $data['message_id'] ?? '',
-            ]
-        )));
+        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+            $data = V3::pack($data);
+        } else {
+            $data = V5::pack($data);
+        }
+
+        return $response->withBody(new SwooleStream($data));
     }
 }
