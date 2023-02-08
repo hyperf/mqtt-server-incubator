@@ -25,6 +25,7 @@ use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpMessage\Uri\Uri;
 use Hyperf\HttpServer\Contract\CoreMiddlewareInterface;
 use Hyperf\MqttServer\Exception\Handler\MqttExceptionHandler;
+use Hyperf\Utils\ApplicationContext;
 use Hyperf\Utils\Codec\Json;
 use Hyperf\Utils\Coordinator\Constants;
 use Hyperf\Utils\Coordinator\CoordinatorManager;
@@ -32,6 +33,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Psr\SimpleCache\CacheInterface;
 use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
@@ -109,14 +111,18 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
     {
         $request = $response = null;
         try {
+            $fdProtocolFlag = 'MqttProtocolLevel:' . $fd;
+            $accheClient = ApplicationContext::getContainer()->get(CacheInterface::class);
+            $protocolLevel = $accheClient->get($fdProtocolFlag);
             if (UnPackTool::getType($data) == Types::CONNECT) {
-                Context::set('MqttProtocolLevel', UnPackTool::getLevel($data));
+                $accheClient->set($fdProtocolFlag, $protocolLevel = UnPackTool::getLevel($data));
             }
             CoordinatorManager::until(Constants::WORKER_START)->yield();
 
             // Initialize PSR-7 Request and Response objects.
             Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
-            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data));
+            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data, $protocolLevel));
+
 
             $middlewares = $this->middlewares;
 
@@ -129,6 +135,8 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
             $response = $exceptionHandlerDispatcher->dispatch($throwable, $this->exceptionHandlers);
         } finally {
             if ($response instanceof PsrResponse && $response->getAttribute('closed', false)) {
+                $accheClient = ApplicationContext::getContainer()->get(CacheInterface::class);
+                $accheClient->delete($fdProtocolFlag);
                 $this->close($server, $fd);
             }
             if ($response instanceof ResponseInterface) {
@@ -175,9 +183,9 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
         return new CoreMiddleware($this->container, $this->serverName);
     }
 
-    protected function buildRequest(int $fd, int $reactorId, string $data): ServerRequestInterface
+    protected function buildRequest(int $fd, int $reactorId, string $data, int $protocolLevel): ServerRequestInterface
     {
-        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+        if ($protocolLevel != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
             $data = V3::unpack($data);
         } else {
             $data = V5::unpack($data);
@@ -186,6 +194,7 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
         $request = new Request('POST', $uri, ['Content-Type' => 'application/json'], new SwooleStream(Json::encode($data)));
         return $request->withAttribute(Types::class, $data['type'] ?? 0)
             ->withAttribute('fd', $fd)
+            ->withAttribute('MqttProtocolLevel', $protocolLevel)
             ->withAttribute('reactorId', $reactorId)
             ->withParsedBody($data);
     }

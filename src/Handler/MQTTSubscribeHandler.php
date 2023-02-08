@@ -14,7 +14,9 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\Context\Context;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
+use Hyperf\Utils\ApplicationContext;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\SimpleCache\CacheInterface;
 use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
@@ -38,8 +40,9 @@ class MQTTSubscribeHandler implements HandlerInterface
             'message_id' => $data['message_id'] ?? '',
             'codes' => $payload,
         ];
+        $protocolLevel = $response->getAttribute('MqttProtocolLevel');
 
-        if (Context::get('MqttProtocolLevel') != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+        if ($protocolLevel != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
             $data = V3::pack($data);
         } else {
             $data = V5::pack($data);

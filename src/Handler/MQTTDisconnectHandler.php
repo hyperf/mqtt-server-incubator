@@ -12,12 +12,16 @@ declare(strict_types=1);
 namespace Hyperf\MqttServer\Handler;
 
 use Hyperf\HttpMessage\Server\Response;
+use Hyperf\Utils\ApplicationContext;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\SimpleCache\CacheInterface;
 
 class MQTTDisconnectHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
+        $fd = $response->getAttribute('fd');
+        ApplicationContext::getContainer()->get(CacheInterface::class)->delete('MqttProtocolLevel:' . $fd);
         return $response->withAttribute('closed', true);
     }
 }

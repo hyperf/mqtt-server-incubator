@@ -14,7 +14,9 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\Context\Context;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
+use Hyperf\Utils\ApplicationContext;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\SimpleCache\CacheInterface;
 use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
@@ -31,10 +33,9 @@ class MQTTPublishHandler implements HandlerInterface
         $fd = $request->getAttribute('fd');
         $data = $request->getParsedBody();
 
-        $level = Context::get('MqttProtocolLevel');
-
         foreach ($server->connections as $targetFd) {
             if ($targetFd != $fd) {
+                $protocolLevel = ApplicationContext::getContainer()->get(CacheInterface::class)->get('MqttProtocolLevel:' . $targetFd);
                 $packData =
                     [
                         'type' => $data['type'],
@@ -45,7 +46,7 @@ class MQTTPublishHandler implements HandlerInterface
                         'retain' => $data['retain'],
                         'message_id' => $data['message_id'] ?? '',
                     ];
-                if ($level != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
+                if ($protocolLevel != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
                     $packData = V3::pack($packData);
                 } else {
                     $packData = V5::pack($packData);
@@ -58,11 +59,12 @@ class MQTTPublishHandler implements HandlerInterface
         }
 
         if ($data['qos'] === 1) {
+            $protocolLevel = $response->getAttribute('MqttProtocolLevel');
             $packData = [
                 'type' => Types::PUBACK,
                 'message_id' => $data['message_id'] ?? '',
             ];
-            if ($level == 3) {
+            if ($protocolLevel == 3) {
                 $packData = V3::pack($packData);
             } else {
                 $packData = V5::pack($packData);
