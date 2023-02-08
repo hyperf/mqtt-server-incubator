@@ -64,7 +64,7 @@ class MQTTPublishHandler implements HandlerInterface
                 'type' => Types::PUBACK,
                 'message_id' => $data['message_id'] ?? '',
             ];
-            if ($protocolLevel == 3) {
+            if ($protocolLevel != ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0) {
                 $packData = V3::pack($packData);
             } else {
                 $packData = V5::pack($packData);
