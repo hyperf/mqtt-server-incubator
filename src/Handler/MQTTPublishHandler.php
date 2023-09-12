@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\MqttServer\Handler;
 
 use Hyperf\HttpMessage\Server\Response;
@@ -23,7 +24,7 @@ class MQTTPublishHandler implements HandlerInterface
 {
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
-        /** @var Server|Connection $server */
+        /** @var Connection|Server $server */
         $server = $response->getAttribute('server');
         $fd = $request->getAttribute('fd');
         $data = $request->getParsedBody();
