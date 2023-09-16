@@ -115,4 +115,3 @@ string(234) "{"type":1,"protocol_name":"MQTT","protocol_level":4,"clean_session"
 |  server  |            指定当前事件对应的服务名            |
 |   type   |                    事件类型                    |
 | priority | 事件优先级，越大越先执行，默认的事件优先级为 0 |
-

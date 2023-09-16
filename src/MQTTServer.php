@@ -33,8 +33,12 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Psr\SimpleCache\CacheInterface;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Protocol\V5;
+use Simps\MQTT\Tools\UnPackTool;
 use Swoole\Coroutine\Server\Connection;
 use Swoole\Server as SwooleServer;
 use Throwable;
@@ -105,13 +109,20 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
 
     public function onReceive($server, int $fd, int $reactorId, string $data): void
     {
-        $request = $response = null;
+        $cache = $this->container->get(CacheInterface::class);
+        $protocolLevelKey = ProtocolInterface::class . $fd;
+
         try {
+            $protocolLevel = $cache->get($protocolLevelKey);
+            if (UnPackTool::getType($data) == Types::CONNECT) {
+                $cache->set($protocolLevelKey, $protocolLevel = UnPackTool::getLevel($data));
+            }
+
             CoordinatorManager::until(Constants::WORKER_START)->yield();
 
             // Initialize PSR-7 Request and Response objects.
             Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
-            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data));
+            Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data, $protocolLevel));
 
             $middlewares = $this->middlewares;
 
@@ -124,6 +135,7 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
             $response = $exceptionHandlerDispatcher->dispatch($throwable, $this->exceptionHandlers);
         } finally {
             if ($response instanceof PsrResponse && $response->getAttribute('closed', false)) {
+                $cache->delete($protocolLevelKey);
                 $this->close($server, $fd);
             }
             if ($response instanceof ResponseInterface) {
@@ -170,14 +182,15 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
         return new CoreMiddleware($this->container, $this->serverName);
     }
 
-    protected function buildRequest(int $fd, int $reactorId, string $data): ServerRequestInterface
+    protected function buildRequest(int $fd, int $reactorId, string $data, int $protocolLevel): ServerRequestInterface
     {
-        $data = V3::unpack($data);
+        $data = $protocolLevel !== ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0 ? V3::unpack($data) : V5::unpack($data);
         $uri = new Uri('http://0.0.0.0/');
         $request = new Request('POST', $uri, ['Content-Type' => 'application/json'], new SwooleStream(Json::encode($data)));
         return $request->withAttribute(Types::class, $data['type'] ?? 0)
             ->withAttribute('fd', $fd)
             ->withAttribute('reactorId', $reactorId)
+            ->withAttribute(ProtocolInterface::class, $protocolLevel)
             ->withParsedBody($data);
     }
 

@@ -15,8 +15,9 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
-use Simps\MQTT\Protocol\Types;
-use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Message\PubAck;
+use Simps\MQTT\Message\Publish;
+use Simps\MQTT\Protocol\ProtocolInterface;
 use Swoole\Coroutine\Server\Connection;
 use Swoole\Server;
 
@@ -28,32 +29,30 @@ class MQTTPublishHandler implements HandlerInterface
         $server = $response->getAttribute('server');
         $fd = $request->getAttribute('fd');
         $data = $request->getParsedBody();
+        $level = $request->getAttribute(ProtocolInterface::class);
+
+        $responseData = [
+            'protocolLevel' => $level,
+            'messageId' => $data['message_id'],
+            'type' => $data['type'],
+            'topic' => $data['topic'],
+            'message' => $data['message'],
+            'dup' => $data['dup'],
+            'qos' => $data['qos'],
+            'retain' => $data['retain'],
+        ];
+
+        $ack = new Publish($responseData);
+
         foreach ($server->connections as $targetFd) {
             if ($targetFd != $fd) {
-                $server->send(
-                    $targetFd,
-                    V3::pack(
-                        [
-                            'type' => $data['type'],
-                            'topic' => $data['topic'],
-                            'message' => $data['message'],
-                            'dup' => $data['dup'],
-                            'qos' => $data['qos'],
-                            'retain' => $data['retain'],
-                            'message_id' => $data['message_id'] ?? '',
-                        ]
-                    )
-                );
+                $server->send($targetFd, (string) $ack);
             }
         }
 
         if ($data['qos'] === 1) {
-            $response = $response->withBody(new SwooleStream(V3::pack(
-                [
-                    'type' => Types::PUBACK,
-                    'message_id' => $data['message_id'] ?? '',
-                ]
-            )));
+            $ack = new PubAck($responseData);
+            $response = $response->withBody(new SwooleStream((string) $ack));
         }
 
         return $response;
