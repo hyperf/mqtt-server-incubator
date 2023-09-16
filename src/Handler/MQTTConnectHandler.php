@@ -15,8 +15,8 @@ namespace Hyperf\MqttServer\Handler;
 use Hyperf\HttpMessage\Server\Response;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ServerRequestInterface;
-use Simps\MQTT\Protocol\Types;
-use Simps\MQTT\Protocol\V3;
+use Simps\MQTT\Message\ConnAck;
+use Simps\MQTT\Protocol\ProtocolInterface;
 
 class MQTTConnectHandler implements HandlerInterface
 {
@@ -24,8 +24,10 @@ class MQTTConnectHandler implements HandlerInterface
 
     public function handle(ServerRequestInterface $request, Response $response): Response
     {
+        $level = $request->getAttribute(ProtocolInterface::class);
         $data = $request->getParsedBody();
-        if ($data['protocol_name'] != 'MQTT') {
+
+        if (! $this->isValidProtocol($level, $data['protocol_name'])) {
             return $response->withAttribute('closed', true);
         }
 
@@ -33,12 +35,17 @@ class MQTTConnectHandler implements HandlerInterface
             return $response;
         }
 
-        return $response->withBody(new SwooleStream(V3::pack(
-            [
-                'type' => Types::CONNACK,
-                'code' => 0,
-                'session_present' => 0,
-            ]
-        )));
+        $ack = new ConnAck();
+        $ack->setProtocolLevel($level)->setCode(0)->setSessionPresent(0);
+
+        return $response->withBody(new SwooleStream((string) $ack));
+    }
+
+    private function isValidProtocol($level, $name): bool
+    {
+        return
+            ($level === ProtocolInterface::MQTT_PROTOCOL_LEVEL_3_1_1 && $name === ProtocolInterface::MQTT_PROTOCOL_NAME)
+            || ($level === ProtocolInterface::MQTT_PROTOCOL_LEVEL_5_0 && $name === ProtocolInterface::MQTT_PROTOCOL_NAME)
+            || ($level === ProtocolInterface::MQTT_PROTOCOL_LEVEL_3_1 && $name === ProtocolInterface::MQISDP_PROTOCOL_NAME);
     }
 }
