@@ -109,10 +109,12 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
 
     public function onReceive($server, int $fd, int $reactorId, string $data): void
     {
-        $cache = $this->container->get(CacheInterface::class);
-        $protocolLevelKey = ProtocolInterface::class . $fd;
-
         try {
+            Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
+
+            $cache = $this->container->get(CacheInterface::class);
+            $protocolLevelKey = ProtocolInterface::class . $fd;
+
             $protocolLevel = $cache->get($protocolLevelKey);
             if (UnPackTool::getType($data) == Types::CONNECT) {
                 $cache->set($protocolLevelKey, $protocolLevel = UnPackTool::getLevel($data));
@@ -121,7 +123,6 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
             CoordinatorManager::until(Constants::WORKER_START)->yield();
 
             // Initialize PSR-7 Request and Response objects.
-            Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
             Context::set(ServerRequestInterface::class, $request = $this->buildRequest($fd, $reactorId, $data, $protocolLevel));
 
             $middlewares = $this->middlewares;
