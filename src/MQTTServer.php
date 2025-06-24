@@ -109,6 +109,7 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
 
     public function onReceive($server, int $fd, int $reactorId, string $data): void
     {
+        $cache = null;
         try {
             Context::set(ResponseInterface::class, $this->buildResponse($fd, $server));
 
@@ -136,7 +137,7 @@ class MQTTServer implements OnReceiveInterface, MiddlewareInitializerInterface
             $response = $exceptionHandlerDispatcher->dispatch($throwable, $this->exceptionHandlers);
         } finally {
             if ($response instanceof PsrResponse && $response->getAttribute('closed', false)) {
-                $cache->delete($protocolLevelKey);
+                $cache?->delete($protocolLevelKey);
                 $this->close($server, $fd);
             }
             if ($response instanceof ResponseInterface) {
